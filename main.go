@@ -37,28 +37,6 @@ func DumpFile(path string, outPath string) {
 	}
 }
 
-func Kek(src io.Reader) {
-	CRIDinfo, err := ReadChunk(src)
-	if err != nil {
-		panic("hi")
-	}
-
-	fmt.Println(PayloadType[CRIDinfo.PayloadType])
-
-	result, err := ParsePayload(CRIDinfo.Payload)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	dict, name, err := BuildDict(result)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println(name)
-	fmt.Println(dict)
-}
-
 func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 	// start json array
 	if _, err = out.Write([]byte("[\n")); err != nil {
@@ -79,13 +57,18 @@ func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 		fmt.Printf("== Chunk #%d ==\n", i)
 
 		j := map[string]string{
+			"Offset":        strconv.Itoa(pos),
 			"Chunk":         strconv.Itoa(i),
 			"Header":        chunkInfo.Header.String(),
 			"PayloadHeader": chunkInfo.Data.PayloadHeader.String(),
 		}
 
+		// 8 is the size of chunkHeader
+		//pos += int(chunkInfo.Header.SizeUInt()) + 8
+		pos += int(chunkInfo.Header.Size) + 8
+
 		if chunkInfo.Data.PayloadHeader.PayloadType == PayloadTypeEnd {
-			payload, err := ParsePayloadEnd(chunkInfo.Payload)
+			payload, err := ParsePayloadEnd(chunkInfo.Data.Payload)
 			if err != nil {
 				fmt.Println("can't parse payload end: ", err)
 			} else {
@@ -95,7 +78,7 @@ func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 
 		if chunkInfo.Data.PayloadHeader.PayloadType == PayloadTypeHeader ||
 			chunkInfo.Data.PayloadHeader.PayloadType == PayloadTypeSeek {
-			payload, err := ParsePayload(chunkInfo.Payload)
+			payload, err := ParsePayload(chunkInfo.Data.Payload)
 			if err != nil {
 				fmt.Println("can't parse payload: ", err)
 			} else {
@@ -143,7 +126,7 @@ func ReadSubtitleData(raw []byte) (result Subtitle, err error) {
 		return
 	}
 
-	var subText = make([]byte, head.GetStringSize())
+	var subText = make([]byte, head.StringSize)
 	if err = safeRead(src, subText); err != nil {
 		return
 	}
@@ -153,28 +136,27 @@ func ReadSubtitleData(raw []byte) (result Subtitle, err error) {
 	return
 }
 
-func ReadChunk(src io.Reader) (result Chunk, err error) {
+func ReadChunk(src io.Reader, offset int) (result Chunk, err error) {
+	result.offset = offset
 	result.Header, err = ReadHeader(src)
 	if err != nil {
 		return result, err
 	}
-	result.Data, err = ReadChunkData(src, result.SizeUInt())
-	//result.Data = *ReadPayloadHeader(src)
+	result.Data, err = ReadChunkData(src, result.Header.Size)
 
-	//fmt.Println(result)
 	return result, err
 }
 
-func ReadChunkData(src io.Reader, size uint32) (result Data, err error) {
+func ReadChunkData(src io.Reader, size int32) (result Data, err error) {
 	result.PayloadHeader, err = ReadPayloadHeader(src)
 
 	_payload := make([]byte,
-		int(size)-int(result.PayloadHeader.GetPaddingSize())-result.PayloadHeader.Len())
+		int(size)-int(result.PayloadHeader.PaddingSize)-result.PayloadHeader.Len())
 	err = safeRead(src, _payload)
 	result.Payload = _payload
 
 	// skip padding
-	_ = safeRead(src, make([]byte, result.PayloadHeader.GetPaddingSize()))
+	_ = safeRead(src, make([]byte, result.PayloadHeader.PaddingSize))
 
 	return result, err
 }
@@ -197,10 +179,10 @@ func ParsePayload(raw []byte) (result Payload, err error) {
 		return
 	}
 
-	_sharedArray := make([]byte, fixedData.GetUniqueArrayOffset()-fixedData.Len())
-	_uniqueArray := make([]byte, fixedData.GetStringArrayOffset()-fixedData.GetUniqueArrayOffset())
-	_stringArray := make([]byte, fixedData.GetByteArrayOffset()-fixedData.GetStringArrayOffset())
-	_byteArray := make([]byte, result.Header.SizeUInt()-fixedData.GetByteArrayOffset())
+	_sharedArray := make([]byte, fixedData.UniqueArrayOffset-fixedData.Length())
+	_uniqueArray := make([]byte, fixedData.StringArrayOffset-fixedData.UniqueArrayOffset)
+	_stringArray := make([]byte, fixedData.ByteArrayOffset-fixedData.StringArrayOffset)
+	_byteArray := make([]byte, result.Header.Size-int32(fixedData.ByteArrayOffset))
 
 	_ = safeRead(src, _sharedArray)
 	_ = safeRead(src, _uniqueArray)
@@ -240,17 +222,17 @@ func safeRead(src io.Reader, dst []byte) error {
 }
 
 func BuildDict(src Payload) (name string, result []map[string]Entry, err error) {
-	sharedArray := bytes.NewReader(src.PayloadData.SharedArray)
-	uniqueArray := bytes.NewReader(src.PayloadData.UniqueArray)
-	stringsArray := bytes.NewReader(src.PayloadData.StringArray)
-	bytesArray := bytes.NewReader(src.PayloadData.ByteArray)
+	sharedArray := bytes.NewReader(src.PayloadData.PayloadFlexData.SharedArray)
+	uniqueArray := bytes.NewReader(src.PayloadData.PayloadFlexData.UniqueArray)
+	stringsArray := bytes.NewReader(src.PayloadData.PayloadFlexData.StringArray)
+	bytesArray := bytes.NewReader(src.PayloadData.PayloadFlexData.ByteArray)
 
 	result = make([]map[string]Entry, 0)
 
-	for i := 1; i <= int(src.GetNumberOfDictionary()); i++ {
+	for i := 1; i <= int(src.PayloadData.PayloadFixedData.NumberOfDictionary); i++ {
 		var dict = make(map[string]Entry, 0)
 
-		for ii := 1; ii <= int(src.GetItemsPerDictionary()); ii++ {
+		for ii := 1; ii <= int(src.PayloadData.PayloadFixedData.ItemsPerDictionary); ii++ {
 			var itemType byte
 			itemType, err = sharedArray.ReadByte()
 			if err != nil {
@@ -328,7 +310,7 @@ func BuildDict(src Payload) (name string, result []map[string]Entry, err error) 
 		}
 	}
 
-	name, err = ReadStringAt(stringsArray, int(src.GetPayloadNameOffset()))
+	name, err = ReadStringAt(stringsArray, int(src.PayloadData.PayloadFixedData.PayloadNameOffset))
 	return
 }
 

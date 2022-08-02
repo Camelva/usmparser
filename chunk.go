@@ -1,13 +1,14 @@
 package parser
 
 import (
-	"encoding/binary"
 	"fmt"
 )
 
 type Chunk struct {
-	Header
-	Data
+	offset int
+
+	Header Header
+	Data   Data
 }
 
 func (c Chunk) String() string {
@@ -20,7 +21,7 @@ func (c Chunk) String() string {
 
 type Header struct {
 	ID   [4]byte
-	Size [4]byte
+	Size int32
 }
 
 func (h Header) String() string {
@@ -31,13 +32,9 @@ func (h Header) IDString() string {
 	return string(h.ID[:])
 }
 
-func (h Header) SizeUInt() uint32 {
-	return binary.BigEndian.Uint32(h.Size[:])
-}
-
 type Data struct {
-	PayloadHeader
-	Payload []byte
+	PayloadHeader PayloadHeader
+	Payload       []byte
 	//Padding []byte
 }
 
@@ -54,13 +51,13 @@ type PayloadHeader struct {
 	// skip 1 byte
 	_             byte
 	Offset        byte
-	PaddingSize   [2]byte
+	PaddingSize   uint16
 	ChannelNumber byte
 	// skip 2 bytes
 	_           [2]byte
 	PayloadType byte
-	FrameTime   [4]byte
-	FrameRate   [4]byte
+	FrameTime   int32
+	FrameRate   int32
 	// skip 8 bytes
 	_ [8]byte
 }
@@ -83,8 +80,4 @@ func (h PayloadHeader) String() string {
 
 func (h PayloadHeader) GetPayloadType() int {
 	return int(h.PayloadType)
-}
-
-func (h PayloadHeader) GetPaddingSize() uint16 {
-	return binary.BigEndian.Uint16(h.PaddingSize[:])
 }

@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"encoding/binary"
 	"fmt"
 )
 
@@ -20,8 +19,8 @@ const (
 )
 
 type Payload struct {
-	Header
-	PayloadData
+	Header      Header
+	PayloadData PayloadData
 }
 
 func (d Payload) String() string {
@@ -33,8 +32,8 @@ func (d Payload) String() string {
 }
 
 type PayloadData struct {
-	PayloadFixedData
-	PayloadFlexData
+	PayloadFixedData PayloadFixedData
+	PayloadFlexData  PayloadFlexData
 }
 
 func (d PayloadData) String() string {
@@ -48,13 +47,17 @@ func (d PayloadData) String() string {
 }
 
 type PayloadFixedData struct {
-	UniqueArrayOffset            [4]byte
-	StringArrayOffset            [4]byte
-	ByteArrayOffset              [4]byte
-	PayloadNameOffset            [4]byte
-	ItemsPerDictionary           [2]byte
-	UniqueArraySizePerDictionary [2]byte
-	NumberOfDictionary           [4]byte
+	UniqueArrayOffset            uint32
+	StringArrayOffset            uint32
+	ByteArrayOffset              uint32
+	PayloadNameOffset            uint32
+	ItemsPerDictionary           uint16
+	UniqueArraySizePerDictionary uint16
+	NumberOfDictionary           uint32
+}
+
+func (d PayloadFixedData) Length() uint32 {
+	return 24
 }
 
 func (d PayloadFixedData) String() string {
@@ -71,40 +74,6 @@ func (d PayloadFixedData) String() string {
 		d.ItemsPerDictionary, d.UniqueArraySizePerDictionary, d.NumberOfDictionary)
 }
 
-func (d PayloadFixedData) Len() uint32 {
-	//return unsafe.Sizeof(d)
-	// Size is always fixed
-	return 24
-}
-
-func (d PayloadFixedData) GetUniqueArrayOffset() uint32 {
-	return binary.BigEndian.Uint32(d.UniqueArrayOffset[:])
-}
-
-func (d PayloadFixedData) GetStringArrayOffset() uint32 {
-	return binary.BigEndian.Uint32(d.StringArrayOffset[:])
-}
-
-func (d PayloadFixedData) GetByteArrayOffset() uint32 {
-	return binary.BigEndian.Uint32(d.ByteArrayOffset[:])
-}
-
-func (d PayloadFixedData) GetPayloadNameOffset() uint32 {
-	return binary.BigEndian.Uint32(d.PayloadNameOffset[:])
-}
-
-func (d PayloadFixedData) GetItemsPerDictionary() uint16 {
-	return binary.BigEndian.Uint16(d.ItemsPerDictionary[:])
-}
-
-func (d PayloadFixedData) GetUniqueArraySizePerDictionary() uint16 {
-	return binary.BigEndian.Uint16(d.UniqueArraySizePerDictionary[:])
-}
-
-func (d PayloadFixedData) GetNumberOfDictionary() uint32 {
-	return binary.BigEndian.Uint32(d.NumberOfDictionary[:])
-}
-
 type PayloadFlexData struct {
 	SharedArray []byte
 	UniqueArray []byte
@@ -113,17 +82,18 @@ type PayloadFlexData struct {
 }
 
 func (d PayloadFlexData) String() string {
-	return fmt.Sprintf(``+
-		`"SharedArray": % x, `+
-		`"UniqueArray": % x, `+
-		`"StringArray": % x, `+
-		`"ByteArray": % x`+
-		``,
-		d.SharedArray, d.UniqueArray, d.StringArray, d.ByteArray)
+	//return fmt.Sprintf(``+
+	//	`"SharedArray": % x, `+
+	//	`"UniqueArray": % x, `+
+	//	`"StringArray": % x, `+
+	//	`"ByteArray": % x`+
+	//	``,
+	//	d.SharedArray, d.UniqueArray, d.StringArray, d.ByteArray)
+	return ""
 }
 
 type Subtitle struct {
-	SubtitleHeader
+	SubtitleHeader SubtitleHeader
 	SubtitleString []byte
 }
 
@@ -134,38 +104,18 @@ func (s Subtitle) String() string {
 
 // SubtitleHeader is encoded in LittleEndian
 type SubtitleHeader struct {
-	Language   [4]byte
-	FrameRate  [4]byte
-	FrameTime  [4]byte
-	FrameEnd   [4]byte
-	StringSize [4]byte
-}
-
-func (h SubtitleHeader) GetLanguage() uint32 {
-	return binary.LittleEndian.Uint32(h.Language[:])
-}
-
-func (h SubtitleHeader) GetFrameRate() uint32 {
-	return binary.LittleEndian.Uint32(h.FrameRate[:])
-}
-
-func (h SubtitleHeader) GetFrameTime() uint32 {
-	return binary.LittleEndian.Uint32(h.FrameTime[:])
-}
-
-func (h SubtitleHeader) GetFrameEnd() uint32 {
-	return binary.LittleEndian.Uint32(h.FrameEnd[:])
-}
-
-func (h SubtitleHeader) GetStringSize() uint32 {
-	return binary.LittleEndian.Uint32(h.StringSize[:])
+	Language   uint32
+	FrameRate  uint32
+	FrameTime  uint32
+	FrameEnd   uint32
+	StringSize uint32
 }
 
 func (h SubtitleHeader) String() string {
 	return fmt.Sprintf(`{`+
-		`"Language": %v, `+
-		`"FrameRate": %v, `+
-		`"FrameTime": %v, `+
+		`"Language": %#x, `+
+		`"FrameRate": %#x, `+
+		`"FrameTime": %#x, `+
 		`"FrameEnd": %#x, `+
 		`"StringSize": %#x`+
 		`}`,
