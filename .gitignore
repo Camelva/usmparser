@@ -1,0 +1,6 @@
+# Editor
+.idea
+
+# Testing
+*.json
+*.usm
