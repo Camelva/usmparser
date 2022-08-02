@@ -4,3 +4,4 @@
 # Testing
 *.json
 *.usm
+main_test.go
