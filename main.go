@@ -44,9 +44,10 @@ func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 	}
 
 	var i = 0
+	var pos int
 	for {
 		i++
-		chunkInfo, err := ReadChunk(src)
+		chunkInfo, err := ReadChunk(src, pos)
 		if err != nil {
 			if err == io.EOF {
 				return err
@@ -54,7 +55,7 @@ func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 			return fmt.Errorf("read chunk: %w", err)
 		}
 
-		fmt.Printf("== Chunk #%d ==\n", i)
+		fmt.Printf("== Chunk #%d at %#x ==\n", i, pos)
 
 		j := map[string]string{
 			"Offset":        strconv.Itoa(pos),
