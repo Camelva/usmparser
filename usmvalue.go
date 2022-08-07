@@ -33,7 +33,7 @@ var values = map[byte]USMValueInfo{
 // valueType + (valueOccurrence << 5)
 //
 // valueOccurrence:
-// - 1: occurring (1 << 5 = 0x20)
+// - 1: recurring (1 << 5 = 0x20)
 // - 2: unique (2 << 5 = 0x40)
 func GetValue(c byte) (USMValueInfo, bool) {
 	var unique bool
@@ -50,8 +50,10 @@ func GetValue(c byte) (USMValueInfo, bool) {
 }
 
 type Entry struct {
-	Type  USMValueInfo
-	Value []byte
+	Key       string
+	Type      USMValueInfo
+	Recurring bool
+	Value     []byte
 }
 
 func (e Entry) String() string {
@@ -109,4 +111,40 @@ func (e Entry) String() string {
 	}
 
 	return fmt.Sprintf("%d", e.Value)
+}
+
+func (e Entry) ToByte() byte {
+	var val byte = 0x40
+	if e.Recurring {
+		val = 0x20
+	}
+
+	switch e.Type.Name {
+	case "Char":
+		val += 0x10
+	case "Unsigned Char":
+		val += 0x11
+	case "Short":
+		val += 0x12
+	case "Unsigned Short":
+		val += 0x13
+	case "Integer":
+		val += 0x14
+	case "Unsigned Integer":
+		val += 0x15
+	case "Long long":
+		val += 0x16
+	case "Unsigned long long":
+		val += 0x17
+	case "Float":
+		val += 0x18
+	case "Double":
+		val += 0x19
+	case "String":
+		val += 0x1A
+	case "Bytes":
+		val += 0x1B
+	}
+
+	return val
 }

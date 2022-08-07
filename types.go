@@ -36,6 +36,13 @@ type PayloadData struct {
 	PayloadFlexData  PayloadFlexData
 }
 
+func (d PayloadData) Size() int {
+	return 24 + len(d.PayloadFlexData.SharedArray) +
+		len(d.PayloadFlexData.UniqueArray) +
+		len(d.PayloadFlexData.StringArray) +
+		len(d.PayloadFlexData.ByteArray)
+}
+
 func (d PayloadData) String() string {
 	return fmt.Sprintf(`{`+
 		`%v, `+
@@ -109,6 +116,27 @@ type SubtitleHeader struct {
 	FrameTime  uint32
 	FrameEnd   uint32
 	StringSize uint32
+}
+
+func (h SubtitleHeader) GetLang() string {
+	switch h.Language {
+	case 0:
+		return Chinese
+	case 1:
+		return English
+	case 2:
+		return Thai
+	case 3:
+		return Vietnamese
+	case 4:
+		return French
+	case 5:
+		return German
+	case 6:
+		return Indonesian
+	default:
+		return Undefined
+	}
 }
 
 func (h SubtitleHeader) String() string {

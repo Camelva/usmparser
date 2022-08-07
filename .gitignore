@@ -5,3 +5,6 @@
 *.json
 *.usm
 main_test.go
+
+# no binaries
+*.exe

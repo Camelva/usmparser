@@ -6,36 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"os"
 	"strconv"
 	"strings"
 )
-
-// DumpFile tries to read file `path` and write result to file `outPath`
-func DumpFile(path string, outPath string) {
-	src, err := os.Open(path)
-	if err != nil {
-		log.Fatal("can't open source file: ", err)
-	}
-
-	out, err := os.Create(outPath)
-	if err != nil {
-		log.Fatal("can't create output file: ", err)
-	}
-
-	defer func() {
-		_ = src.Close()
-		_ = out.Close()
-	}()
-
-	err = DumpAllChunks(src, out)
-	if err != nil {
-		if err != io.EOF {
-			log.Fatal(err)
-		}
-	}
-}
 
 func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 	// start json array
@@ -132,6 +105,12 @@ func ReadSubtitleData(raw []byte) (result Subtitle, err error) {
 		return
 	}
 
+	// replace last 2 zero bytes with new line (windows format)
+	if bytes.HasSuffix(subText, []byte{0x00, 0x00}) {
+		subText[head.StringSize-2] = byte(0x0D)
+		subText[head.StringSize-1] = byte(0x0A)
+	}
+
 	result.SubtitleHeader = *head
 	result.SubtitleString = subText
 	return
@@ -222,16 +201,16 @@ func safeRead(src io.Reader, dst []byte) error {
 	return err
 }
 
-func BuildDict(src Payload) (name string, result []map[string]Entry, err error) {
+func BuildDict(src Payload) (name string, result [][]Entry, err error) {
 	sharedArray := bytes.NewReader(src.PayloadData.PayloadFlexData.SharedArray)
 	uniqueArray := bytes.NewReader(src.PayloadData.PayloadFlexData.UniqueArray)
 	stringsArray := bytes.NewReader(src.PayloadData.PayloadFlexData.StringArray)
 	bytesArray := bytes.NewReader(src.PayloadData.PayloadFlexData.ByteArray)
 
-	result = make([]map[string]Entry, 0)
+	result = make([][]Entry, 0)
 
 	for i := 1; i <= int(src.PayloadData.PayloadFixedData.NumberOfDictionary); i++ {
-		var dict = make(map[string]Entry, 0)
+		var dict = make([]Entry, 0)
 
 		for ii := 1; ii <= int(src.PayloadData.PayloadFixedData.ItemsPerDictionary); ii++ {
 			var itemType byte
@@ -272,7 +251,7 @@ func BuildDict(src Payload) (name string, result []map[string]Entry, err error) 
 					return
 				}
 
-				dict[key] = Entry{valueType, []byte(actualValue)}
+				dict = append(dict, Entry{key, valueType, !isUnique, []byte(actualValue)})
 				continue
 			}
 
@@ -295,11 +274,11 @@ func BuildDict(src Payload) (name string, result []map[string]Entry, err error) 
 					return
 				}
 
-				dict[key] = Entry{valueType, bytesVal}
+				dict = append(dict, Entry{key, valueType, !isUnique, bytesVal})
 				continue
 			}
 
-			dict[key] = Entry{valueType, valueInfo}
+			dict = append(dict, Entry{key, valueType, !isUnique, valueInfo})
 			continue
 		}
 
