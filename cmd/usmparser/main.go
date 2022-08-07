@@ -21,14 +21,14 @@ func main() {
 	// different commands
 	switch strings.ToLower(args[1]) {
 	case "dumpfile":
-		if len(args) < 3 {
+		if len(args) < 4 {
 			output = strings.TrimSuffix(args[2], ".usm") + ".json"
 		} else {
 			output = args[3]
 		}
 		DumpFile(args[2], output)
 	case "dumpsubs":
-		if len(args) < 3 {
+		if len(args) < 4 {
 			output = filepath.Dir(args[2])
 		} else {
 			output = args[3]
@@ -36,7 +36,7 @@ func main() {
 		DumpSubs(args[2], output)
 	case "replaceaudio":
 		// no output provided, use same folder
-		if len(args) < 4 {
+		if len(args) < 5 {
 			output = strings.TrimSuffix(args[2], ".usm") + "-new.usm"
 		} else {
 			output = args[4]
