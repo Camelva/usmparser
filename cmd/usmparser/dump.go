@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -38,16 +39,25 @@ func DumpFile(path string, outPath string) {
 
 // DumpSubs will try to extract all the subtitles from provided file
 // and save them as {{filename}}_{{language}}.srt in outputFolder
-func DumpSubs(inputFile string, outputFolder string) {
+func DumpSubs(inputFile, outputFolder string, format string) {
 	src, err := os.Open(inputFile)
 	if err != nil {
 		log.Fatal("can't open source file: ", err)
 	}
 
-	result, err := parser.GetSubs(src)
+	subs, err := parser.GetSubs(src)
 	src.Close()
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
+	}
+
+	var result = make(map[string]bytes.Buffer)
+	if format == "srt" {
+		result = parser.SubsToSrt(subs)
+	} else if format == "txt" {
+		result = parser.SubsToTxt(subs)
+	} else {
+		log.Fatalln("wrong subtitle format: ", format)
 	}
 
 	// make sure output path exists
@@ -57,7 +67,7 @@ func DumpSubs(inputFile string, outputFolder string) {
 
 	filename := strings.TrimSuffix(filepath.Base(inputFile), ".usm")
 	for lang, sub := range result {
-		newPath := fmt.Sprintf("%s_%s.srt", filepath.Join(outputFolder, filename), lang)
+		newPath := fmt.Sprintf("%s_%s.%s", filepath.Join(outputFolder, filename), lang, format)
 		f, err := os.Create(newPath)
 		if err != nil {
 			log.Printf("cant open %s: %s\n", newPath, err)
@@ -65,7 +75,7 @@ func DumpSubs(inputFile string, outputFolder string) {
 		}
 
 		_, err = f.Write(sub.Bytes())
-		_, err = f.Write([]byte{0x0D, 0x0A}) // add trailing new line
+		//_, err = f.Write([]byte{0x0D, 0x0A}) // add trailing new line
 		if err != nil {
 			log.Printf("can't write to %s: %s\n", newPath, err)
 		}

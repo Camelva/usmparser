@@ -28,12 +28,16 @@ func main() {
 		}
 		DumpFile(args[2], output)
 	case "dumpsubs":
-		if len(args) < 4 {
+		if len(args) >= 5 {
+			output = args[4]
+		} else if len(args) == 4 {
 			output = filepath.Dir(args[2])
 		} else {
-			output = args[3]
+			fmt.Println("need to specify output format - srt or txt")
+			os.Exit(1)
 		}
-		DumpSubs(args[2], output)
+
+		DumpSubs(args[2], output, args[3])
 	case "replaceaudio":
 		// no output provided, use same folder
 		if len(args) < 5 {
@@ -51,12 +55,12 @@ func displayHelp() {
 	fmt.Println(`Usage:
 	usmparse replaceaudio input1 input2 [output]
 	usmparse dumpfile input [output]
-	usmparse dumpsubs input [output]
+	usmparse dumpsubs input format [output]
 
 List of commands:
 	replaceaudio - simply replace audio in input1 with audio from input2
 	dumpfile - dumps everything from provided input file to output.json
-	dumpsubs - dumps all the subtitles from input file and extracts to {{filename}}_{{language}}.srt inside output folder
+	dumpsubs - dumps all the subtitles from input file to {{filename}}_{{language}}. Format can be either "srt" or "txt".
 
 If output doesn't exist - it will be created
 If no output parameter - result will be stored in same folder as input`)
