@@ -1,9 +1,7 @@
 package main
 
 import (
-	parser "USMparser"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,57 +50,29 @@ func main() {
 }
 
 func displayHelp() {
-	fmt.Println(`Usage:
-	usmparse replaceaudio input1 input2 [output]
-	usmparse dumpfile input [output]
-	usmparse dumpsubs input format [output]
-
-List of commands:
-	replaceaudio - simply replace audio in input1 with audio from input2
-	dumpfile - dumps everything from provided input file to output.json
-	dumpsubs - dumps all the subtitles from input file to {{filename}}_{{language}}. Format can be either "srt" or "txt".
-
-If output doesn't exist - it will be created
-If no output parameter - result will be stored in same folder as input`)
+	fmt.Print(Help)
 	os.Exit(0)
 }
 
-func ReplaceAudio(in1, in2, out string) {
-	f, err := os.Open(in1)
-	if err != nil {
-		log.Fatalf("can't open file %s: %s\n", in1, err)
-	}
+var Help = `Usage:
+	usmparser command parameters...
 
-	origInfo, err := parser.ParseFile(f)
-	if err != nil {
-		log.Fatalln("can't parse file: ", err)
-	}
+List of available commands:
+	- replaceaudio input1 input2 [output]
+		Copies audio from input2 to input1.
+		Pass folders as parameters to process all files inside them.
+		If output parameter not set - will use 
+			- in batch mode: {{input1}}/"out"
+			- in single file mode: {{input1}}-new.usm
 
-	f.Close()
+	- dumpfile input [output]
+		Dumps everything from provided input file to output.
+		If output parameter not set - will use {{input1}}.json
 
-	f2, err := os.Open(in2)
-	if err != nil {
-		log.Fatalf("can't open file %s: %s\n", in2, err)
-	}
-
-	file2Info, err := parser.ParseFile(f2)
-	if err != nil {
-		log.Fatalln("can't parse file: ", err)
-	}
-
-	f.Close()
-
-	origInfo = parser.ReplaceAudio(origInfo, file2Info)
-
-	outF, err := os.Create(out)
-	if err != nil {
-		log.Fatalf("can't create output file %s: %s\n", out, err)
-	}
-
-	err = origInfo.PrepareStreams().WriteTo(outF)
-	if err != nil {
-		log.Fatalf("can't write result to file %s: %s\n", out, err)
-	}
-
-	log.Println("All done!")
-}
+	- dumpsubs input format [output]
+		Dumps all subtitles from input file to separated files for each language, each with "_lang" suffix.
+		Format can be either:
+			- srt: normal subtitle format
+			- txt: plaintext for Scaleform Video Encoder
+		If output parameter not set - will output result in same folder with input
+`
