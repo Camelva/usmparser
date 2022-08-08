@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 func ReplaceAudio(in1, in2, out string) {
@@ -24,7 +26,7 @@ func ReplaceAudio(in1, in2, out string) {
 	}
 
 	if !folderMode {
-		_replaceAudio(f, f2, out)
+		_replaceAudio(f, f2, out, log.Default())
 		return
 	}
 	f2.Close()
@@ -43,34 +45,52 @@ func ReplaceAudio(in1, in2, out string) {
 		log.Fatalf("can't create output folder %s: %s", out, err)
 	}
 
+	logFileName := strings.ReplaceAll(fmt.Sprintf("log-%s.txt", time.Now().Format(time.Stamp)), ":", "_")
+	fileLog, err := os.Create(logFileName)
+	if err != nil {
+		log.Fatalf("can't create log file %s: %s", logFileName, err)
+	}
+
+	log.Print("writing logs to ", logFileName)
+	newLog := log.New(fileLog, "", log.Ltime)
+	newLog.Printf("usmparser replace audio %s %s %s\n", in1, in2, out)
+
 	for _, entry := range f1Entries {
 		if entry.IsDir() {
 			// don't enter sub-folders
 			continue
 		}
 
-		output := filepath.Join(out, entry.Name())
+		name := entry.Name()
+
+		if ext := filepath.Ext(name); ext != ".usm" {
+			newLog.Printf("%s not usm file, skipping..\n", name)
+			continue
+		}
+
+		output := filepath.Join(out, name)
 		_, err = os.Stat(output)
 		if err == nil {
-			log.Printf("%s already exists, skipping..\n", output)
+			newLog.Printf("%s already exists, skipping..\n", output)
 			continue
 		}
 
-		entry1 := filepath.Join(in1, entry.Name())
+		entry1 := filepath.Join(in1, name)
 		f, err = os.Open(entry1)
 		if err != nil {
-			log.Printf("can't open file %s: %s, skipping..\n", entry1, err)
+			newLog.Printf("can't open file: %s, skipping..\n", err)
 			continue
 		}
 
-		entry2 := filepath.Join(in2, entry.Name())
+		entry2 := filepath.Join(in2, name)
 		f2, err = os.Open(entry2)
 		if err != nil {
-			log.Printf("can't open file %s: %s, skipping..\n", entry2, err)
+			newLog.Printf("can't open file: %s, skipping..\n", err)
 			continue
 		}
 
-		_replaceAudio(f, f2, output)
+		newLog.Print(name, ": ")
+		_replaceAudio(f, f2, output, newLog)
 	}
 
 	fmt.Println("All done!")
@@ -85,13 +105,13 @@ func openFile(filename string) (f *os.File, isDir bool) {
 
 	stat1, err := f.Stat()
 	if err != nil {
-		log.Fatalf("can't check file info %s: %s\n", filename, err)
+		log.Fatalf("can't check file info: %s\n", err)
 	}
 
 	return f, stat1.IsDir()
 }
 
-func _replaceAudio(f, f2 *os.File, out string) {
+func _replaceAudio(f, f2 *os.File, out string, logger *log.Logger) {
 	origInfo, err := parser.ParseFile(f)
 	if err != nil {
 		log.Fatalln("can't parse file: ", err)
@@ -104,17 +124,22 @@ func _replaceAudio(f, f2 *os.File, out string) {
 	}
 	f.Close()
 
-	origInfo = parser.ReplaceAudio(origInfo, file2Info)
-
 	outF, err := os.Create(out)
 	if err != nil {
-		log.Fatalf("can't create output file %s: %s\n", out, err)
+		log.Fatalf("can't create output file: %s\n", err)
 	}
+
+	if len(file2Info.AudioStreams) <= 0 {
+		log.Println("input2 doesn't have any audio streams, skipping...")
+		return
+	}
+
+	origInfo = parser.ReplaceAudio(origInfo, file2Info)
 
 	err = origInfo.PrepareStreams().WriteTo(outF)
 	if err != nil {
-		log.Fatalf("can't write result to file %s: %s\n", out, err)
+		log.Fatalf("can't write result to file: %s\n", err)
 	}
 
-	log.Println(out, " - ok!")
+	log.Println(out, "ok!")
 }

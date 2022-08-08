@@ -140,6 +140,10 @@ func (s *USMInfo) PrepareStreams() *USMInfo {
 }
 
 func addContentsEnd(src []Chunk) []Chunk {
+	if len(src) <= 0 {
+		return src
+	}
+
 	end := ContentsEndChunk(src[len(src)-1].Header.ID)
 	// make FrameTime just a bit higher so it goes next after last element
 	end.Data.PayloadHeader.FrameTime = src[len(src)-1].Data.PayloadHeader.FrameTime + 1
@@ -216,20 +220,23 @@ func (s *USMInfo) WriteTo(seeker io.WriteSeeker) error {
 	videoOffsets = append(videoOffsets, pos)
 	pos += n
 
-	// then write 2 audio chunks (HCA header + 1st chunk)
-	c, s.AudioStreams = pop(s.AudioStreams)
-	n, err = WriteChunk(c, seeker)
-	if err != nil {
-		return err
-	}
-	pos += n
+	// some files might not have audio
+	if len(s.AudioStreams) > 2 {
+		// then write 2 audio chunks (HCA header + 1st chunk)
+		c, s.AudioStreams = pop(s.AudioStreams)
+		n, err = WriteChunk(c, seeker)
+		if err != nil {
+			return err
+		}
+		pos += n
 
-	c, s.AudioStreams = pop(s.AudioStreams)
-	n, err = WriteChunk(c, seeker)
-	if err != nil {
-		return err
+		c, s.AudioStreams = pop(s.AudioStreams)
+		n, err = WriteChunk(c, seeker)
+		if err != nil {
+			return err
+		}
+		pos += n
 	}
-	pos += n
 
 	// After this write chunks based on their frame time
 

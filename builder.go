@@ -47,7 +47,7 @@ func safeWriter(out io.Writer, data []byte) error {
 
 	n, err := out.Write(data)
 	if n != dataLen {
-		fmt.Printf("expected to write %#x bytes but only did %#x", dataLen, n)
+		fmt.Printf("expected to write %#x bytes but only did %#x\n", dataLen, n)
 	}
 
 	return err
