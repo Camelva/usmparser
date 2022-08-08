@@ -23,9 +23,15 @@ func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 		chunkInfo, err := ReadChunk(src, pos)
 		if err != nil {
 			if err == io.EOF {
-				return err
+				break
 			}
 			return fmt.Errorf("read chunk: %w", err)
+		}
+
+		if i != 1 {
+			if _, err = out.Write([]byte(",\n")); err != nil {
+				return fmt.Errorf("can't write result: %w", err)
+			}
 		}
 
 		fmt.Printf("== Chunk #%d at %#x ==\n", i, pos)
@@ -63,7 +69,7 @@ func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 			if err != nil {
 				fmt.Println("can't build dict: ", err)
 			} else {
-				j[name] = fmt.Sprintf("%v", dict)
+				j[name] = fmt.Sprintf("%+v", dict)
 			}
 		}
 
@@ -83,13 +89,17 @@ func DumpAllChunks(src io.Reader, out io.Writer) (err error) {
 			return fmt.Errorf("encoding err: %w", err)
 		}
 
-		result = append(result, []byte(",\n")...)
-
 		_, err = out.Write(result)
 		if err != nil {
 			return fmt.Errorf("can't write result: %w", err)
 		}
 	}
+
+	if _, err = out.Write([]byte("\n]")); err != nil {
+		return fmt.Errorf("can't write result: %w", err)
+	}
+
+	return nil
 }
 
 func ReadSubtitleData(raw []byte) (result Subtitle, err error) {
@@ -129,6 +139,9 @@ func ReadChunk(src io.Reader, offset int) (result Chunk, err error) {
 
 func ReadChunkData(src io.Reader, size int32) (result Data, err error) {
 	result.PayloadHeader, err = ReadPayloadHeader(src)
+	if err != nil {
+		return
+	}
 
 	_payload := make([]byte,
 		int(size)-int(result.PayloadHeader.PaddingSize)-result.PayloadHeader.Len())

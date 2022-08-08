@@ -267,7 +267,7 @@ func (s *USMInfo) WriteTo(seeker io.WriteSeeker) error {
 		return err
 	}
 
-	pos, err = seeker.Seek(videoSeekPos, io.SeekStart)
+	_, err = seeker.Seek(videoSeekPos, io.SeekStart)
 	if err != nil {
 		return err
 	}

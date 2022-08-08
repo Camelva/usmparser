@@ -59,12 +59,12 @@ type Entry struct {
 func (e Entry) String() string {
 	if e.Type.Name == "Bytes" {
 		// return bytes
-		return fmt.Sprintf("% x", e.Value)
+		return fmt.Sprintf("%s: % x", e.Key, e.Value)
 	}
 
 	if e.Type.Name == "String" {
 		// encode string
-		return fmt.Sprintf("%s", string(e.Value))
+		return fmt.Sprintf("%s: %s", e.Key, e.Value)
 	}
 
 	//return fmt.Sprintf("%d", e.Value)
@@ -77,40 +77,40 @@ func (e Entry) String() string {
 	switch e.Type.Size {
 	case 1:
 		if signed {
-			return fmt.Sprintf("%d", int8(e.Value[0]))
+			return fmt.Sprintf("%s: %d", e.Key, int8(e.Value[0]))
 		} else {
-			return fmt.Sprintf("%d", e.Value)
+			return fmt.Sprintf("%s: %d", e.Key, e.Value)
 		}
 	case 2:
 		val := binary.BigEndian.Uint16(e.Value)
 		if signed {
-			return fmt.Sprintf("%d", int16(val))
+			return fmt.Sprintf("%s: %d", e.Key, int16(val))
 		} else {
-			return fmt.Sprintf("%d", val)
+			return fmt.Sprintf("%s: %d", e.Key, val)
 		}
 	case 4:
 		val := binary.BigEndian.Uint32(e.Value)
 		if e.Type.Name == "Float" {
-			return fmt.Sprintf("%f", float32(val))
+			return fmt.Sprintf("%s: %f", e.Key, float32(val))
 		}
 		if signed {
-			return fmt.Sprintf("%d", int32(val))
+			return fmt.Sprintf("%s: %d", e.Key, int32(val))
 		} else {
-			return fmt.Sprintf("%d", val)
+			return fmt.Sprintf("%s: %d", e.Key, val)
 		}
 	case 8:
 		val := binary.BigEndian.Uint64(e.Value)
 		if e.Type.Name == "Double" {
-			return fmt.Sprintf("%f", float64(val))
+			return fmt.Sprintf("%s: %f", e.Key, float64(val))
 		}
 		if signed {
-			return fmt.Sprintf("%d", int64(val))
+			return fmt.Sprintf("%s: %d", e.Key, int64(val))
 		} else {
-			return fmt.Sprintf("%d", val)
+			return fmt.Sprintf("%s: %d", e.Key, val)
 		}
 	}
 
-	return fmt.Sprintf("%d", e.Value)
+	return fmt.Sprintf("%s: %d", e.Key, e.Value)
 }
 
 func (e Entry) ToByte() byte {
