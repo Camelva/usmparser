@@ -11,7 +11,7 @@ Go to github actions tab, open latest workflow and download artifact
 1. Install go 1.17+
 1. Run:
    ```shell
-   go build .cmd/usmparser
+   go build ./cmd/usmparser
    ```
    
 ### Usage
