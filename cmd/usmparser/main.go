@@ -88,7 +88,7 @@ func ReplaceAudio(in1, in2, out string) {
 
 	f.Close()
 
-	parser.ReplaceAudio(origInfo, file2Info)
+	origInfo = parser.ReplaceAudio(origInfo, file2Info)
 
 	outF, err := os.Create(out)
 	if err != nil {

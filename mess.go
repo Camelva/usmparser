@@ -143,6 +143,7 @@ func addContentsEnd(src []Chunk) []Chunk {
 	end := ContentsEndChunk(src[len(src)-1].Header.ID)
 	// make FrameTime just a bit higher so it goes next after last element
 	end.Data.PayloadHeader.FrameTime = src[len(src)-1].Data.PayloadHeader.FrameTime + 1
+	end.Data.PayloadHeader.FrameRate = src[len(src)-1].Data.PayloadHeader.FrameRate
 
 	return append(src, end)
 }
@@ -246,7 +247,8 @@ func (s *USMInfo) WriteTo(seeker io.WriteSeeker) error {
 
 	for _, c = range chunks {
 		if c.Data.PayloadHeader.PayloadType == PayloadTypeEnd {
-			c.Data.PayloadHeader.FrameTime = 0
+			c.Data.PayloadHeader.FrameTime = 0x00
+			c.Data.PayloadHeader.FrameRate = 0x1e
 		}
 
 		if c.Header.ID == _SFV {
