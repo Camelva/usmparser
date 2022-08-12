@@ -244,12 +244,24 @@ func (s *USMInfo) WriteTo(seeker io.WriteSeeker) error {
 	chunks = append(chunks, s.SubtitleStreams...)
 
 	sort.SliceStable(chunks, func(i, j int) bool {
-		iFrame := getFrameSeconds(chunks[i].Data.PayloadHeader)
-		jFrame := getFrameSeconds(chunks[j].Data.PayloadHeader)
+		iFrame := chunks[i].Data.PayloadHeader.FrameTime
+		jFrame := chunks[j].Data.PayloadHeader.FrameTime
+		var iLang, jLang byte
+		if chunks[i].Header.ID == _SBT {
+			iFrame = iFrame * 0xbb5 / 0x3e8   // x2,997
+			iLang = chunks[i].Data.Payload[0] // preparing language
+		}
+		if chunks[j].Header.ID == _SBT {
+			jFrame = jFrame * 0xbb5 / 0x3e8   // x2,997
+			jLang = chunks[j].Data.Payload[0] // preparing language
+		}
 
-		//if iFrame != jFrame {
+		// subtitle frames can have same time, so we sort based on language
+		if iFrame == jFrame {
+			return iLang < jLang
+		}
+
 		return iFrame < jFrame
-		//}
 	})
 
 	for _, c = range chunks {
@@ -414,10 +426,6 @@ func makeEndChunk(id [4]byte, content []byte) Chunk {
 			Payload: content,
 		},
 	}
-}
-
-func getFrameSeconds(src PayloadHeader) int32 {
-	return src.FrameTime * 1000 / src.FrameRate
 }
 
 func ReplaceAudio(in1, in2 *USMInfo) *USMInfo {
