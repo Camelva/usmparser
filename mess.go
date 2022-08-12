@@ -290,17 +290,22 @@ func (s *USMInfo) WriteTo(seeker io.WriteSeeker) error {
 }
 
 func getSizeForVideoSeek(videos int) int64 {
-	c := int64(videos/30 + 1)
+	c := int64(videos / 30)
+	// weird way to implement math.Ceil
+	if videos%30 != 0 {
+		c += 1
+	}
+
 	// 0x8 chunk start
 	// 0x18 payloadHeader
 	// 0x8 payload start
 	// 0x18 subtitle header
 	// 0x18 shared array
 	// count * 0xC - unique array
-	// 0x3C string array
+	// 0x38 string array
 	// 0x0 byte array
-	// = 0x94 + unique array in total
-	size := 0xC*c + 0x94
+	// = 0x90 + unique array in total
+	size := 0xC*c + 0x90
 
 	if remainder := size % 0x10; remainder != 0 {
 		size += 0x10 - remainder
