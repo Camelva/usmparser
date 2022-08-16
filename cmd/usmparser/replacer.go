@@ -53,7 +53,7 @@ func ReplaceAudio(in1, in2, out string) {
 
 	log.Print("writing logs to ", logFileName)
 	newLog := log.New(fileLog, "", log.Ltime)
-	newLog.Printf("usmparser replace audio %s %s %s\n", in1, in2, out)
+	newLog.Printf("usmparser replaceaudio %s %s %s\n", in1, in2, out)
 
 	for _, entry := range f1Entries {
 		if entry.IsDir() {
@@ -114,23 +114,23 @@ func openFile(filename string) (f *os.File, isDir bool) {
 func _replaceAudio(f, f2 *os.File, out string, logger *log.Logger) {
 	origInfo, err := parser.ParseFile(f)
 	if err != nil {
-		log.Fatalln("can't parse file: ", err)
+		logger.Fatalln("can't parse file: ", err)
 	}
 	f.Close()
 
 	file2Info, err := parser.ParseFile(f2)
 	if err != nil {
-		log.Fatalln("can't parse file: ", err)
+		logger.Fatalln("can't parse file: ", err)
 	}
 	f.Close()
 
 	outF, err := os.Create(out)
 	if err != nil {
-		log.Fatalf("can't create output file: %s\n", err)
+		logger.Fatalf("can't create output file: %s\n", err)
 	}
 
 	if len(file2Info.AudioStreams) <= 0 {
-		log.Println("input2 doesn't have any audio streams, skipping...")
+		logger.Println("input2 doesn't have any audio streams, skipping...")
 		return
 	}
 
@@ -138,8 +138,8 @@ func _replaceAudio(f, f2 *os.File, out string, logger *log.Logger) {
 
 	err = origInfo.PrepareStreams().WriteTo(outF)
 	if err != nil {
-		log.Fatalf("can't write result to file: %s\n", err)
+		logger.Fatalf("can't write result to file: %s\n", err)
 	}
 
-	log.Println(out, "ok!")
+	logger.Println(out, "ok!")
 }

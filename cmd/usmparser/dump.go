@@ -16,12 +16,12 @@ import (
 func DumpFile(path string, outPath string) {
 	src, err := os.Open(path)
 	if err != nil {
-		log.Fatal("can't open source file: ", err)
+		log.Fatalln("can't open source file: ", err)
 	}
 
 	out, err := os.Create(outPath)
 	if err != nil {
-		log.Fatal("can't create output file: ", err)
+		log.Fatalln("can't create output file: ", err)
 	}
 
 	defer func() {
@@ -32,7 +32,7 @@ func DumpFile(path string, outPath string) {
 	err = parser.DumpAllChunks(src, out)
 	if err != nil {
 		if err != io.EOF {
-			log.Fatal(err)
+			log.Fatalln(err)
 		}
 	}
 }
@@ -42,13 +42,13 @@ func DumpFile(path string, outPath string) {
 func DumpSubs(inputFile, outputFolder string, format string) {
 	src, err := os.Open(inputFile)
 	if err != nil {
-		log.Fatal("can't open source file: ", err)
+		log.Fatalln("can't open source file: ", err)
 	}
 
 	subs, err := parser.GetSubs(src)
 	src.Close()
 	if err != nil && err != io.EOF {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
 
 	var result = make(map[string]bytes.Buffer)
@@ -62,7 +62,7 @@ func DumpSubs(inputFile, outputFolder string, format string) {
 
 	// make sure output path exists
 	if err := os.MkdirAll(outputFolder, os.ModePerm); err != nil {
-		log.Fatal("can't create output folder: ", err)
+		log.Fatalln("can't create output folder: ", err)
 	}
 
 	filename := strings.TrimSuffix(filepath.Base(inputFile), ".usm")
