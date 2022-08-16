@@ -2,13 +2,145 @@ package main
 
 import (
 	"fmt"
+	"github.com/pterm/pterm"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+func CoolerMain() {
+	options := []string{
+		"replaceaudio",
+		"dumpfile",
+		"dumpsubs",
+	}
+
+	command, _ := pterm.DefaultInteractiveSelect.
+		WithOptions(options).
+		Show("Choose command")
+
+	switch command {
+	case "replaceaudio":
+		ReplaceAudioUI()
+	case "dumpfile":
+		DumpFileUI()
+	case "dumpsubs":
+		DumpSubsUI()
+	}
+}
+
+func ReplaceAudioUI() {
+	input1, _ := pterm.DefaultInteractiveTextInput.
+		Show("Input path to main file (or folder of files)")
+
+	info1, err := os.Stat(input1)
+	if err != nil {
+		pterm.Error.Println("Can't open path: ", err)
+		return
+	}
+
+	var defaultOutput string
+
+	if info1.IsDir() {
+		defaultOutput = filepath.Join(input1, "out")
+	} else {
+		defaultOutput = fmt.Sprintf("%s-new.usm", strings.TrimSuffix(input1, ".usm"))
+	}
+
+	input2, _ := pterm.DefaultInteractiveTextInput.
+		Show("Now input path to file (or folder of files) to extract audio from")
+
+	info2, err := os.Stat(input2)
+	if err != nil {
+		pterm.Fatal.Println("Can't open path: ", err)
+		return
+	}
+
+	if info2.IsDir() != info1.IsDir() {
+		pterm.Fatal.Println("Both inputs should be either file or folder!")
+		return
+	}
+
+	output, _ := pterm.DefaultInteractiveTextInput.
+		Show(fmt.Sprintf("Change output path or leave empty to keep default (%s)", defaultOutput))
+
+	// weird workaround until they fix lib
+	if output == "" || output == input2 {
+		output = defaultOutput
+	}
+
+	pterm.Println()
+
+	ReplaceAudio(input1, input1, output)
+}
+
+func DumpFileUI() {
+	input, _ := pterm.DefaultInteractiveTextInput.
+		Show("Input path to .usm file to dump")
+
+	defaultOutput := fmt.Sprintf("%s-new.usm", strings.TrimSuffix(input, ".usm"))
+
+	output, _ := pterm.DefaultInteractiveTextInput.
+		Show(fmt.Sprintf("Change output path or leave empty to keep default (%s)", defaultOutput))
+
+	// weird workaround until they fix lib
+	if output == "" || output == input {
+		output = defaultOutput
+	}
+
+	pterm.Println()
+
+	DumpFile(input, output)
+}
+
+func DumpSubsUI() {
+	input, _ := pterm.DefaultInteractiveTextInput.
+		Show("Input path to .usm file to extract subtitles")
+
+	options := []string{
+		"srt: normal subtitle format",
+		"txt: plaintext for Scaleform Video Encoder",
+	}
+
+	var format string
+
+	formatInput, _ := pterm.DefaultInteractiveSelect.
+		WithOptions(options).
+		Show("Now choose format for extracted subtitles")
+
+	if strings.HasPrefix(formatInput, "srt") {
+		format = "srt"
+	} else if strings.HasPrefix(formatInput, "txt") {
+		format = "txt"
+	} else {
+		// impossible but still
+		pterm.Error.Println("Wrong format!")
+		return
+	}
+
+	defaultOutput := filepath.Dir(input)
+
+	output, _ := pterm.DefaultInteractiveTextInput.
+		Show(fmt.Sprintf("Change output folder or leave empty to keep default (%s)", defaultOutput))
+
+	// weird workaround until they fix lib
+	if output == "" || output == input {
+		output = defaultOutput
+	}
+
+	pterm.Println()
+
+	DumpSubs(input, output, format)
+}
+
 func main() {
 	args := os.Args
+
+	// 1st arg is program name
+	if len(args) <= 1 {
+		CoolerMain()
+		return
+	}
 
 	if len(args) < 3 {
 		displayHelp()
